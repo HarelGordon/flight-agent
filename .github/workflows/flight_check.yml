@@ -1,0 +1,25 @@
+name: Flight Price Check
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # כל יום ב-06:00 UTC = 09:00 ישראל
+  workflow_dispatch:       # כפתור הרצה ידנית ב-GitHub
+
+jobs:
+  check-flights:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker image
+        run: docker build -t flight-agent .
+
+      - name: Run flight agent
+        run: |
+          docker run \
+            -e TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }} \
+            -e TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }} \
+            -e SERPAPI_KEY=${{ secrets.SERPAPI_KEY }} \
+            flight-agent
