@@ -31,31 +31,6 @@ def generate_date_pairs(nights_list):
         current += timedelta(days=1)
     return pairs
 
-def get_price_fast_flights(outbound, return_date, destination):
-    try:
-        result = get_flights(
-            flight_data=[
-                FlightData(date=outbound, from_airport="TLV", to_airport=destination),
-                FlightData(date=return_date, from_airport=destination, to_airport="TLV"),
-            ],
-            trip="round-trip",
-            seat="economy",
-            passengers=Passengers(adults=2, children=0, infants_in_seat=0, infants_on_lap=0),
-            fetch_mode="force-fallback",
-        )
-        valid_prices = []
-        for flight in result.flights:
-            # עדכון לניקוי סימן הדולר במקום השקל
-            price_str = (flight.price or "").replace("$", "").replace(",", "").replace(" ", "").strip()
-            try:
-                valid_prices.append(int(float(price_str)))
-            except:
-                continue
-        return min(valid_prices) if valid_prices else None
-    except Exception as e:
-        print(f"    שגיאה ב-fast-flights: {e}")
-        return None
-
 def get_price_serpapi_specific(destination, outbound, ret, nights):
     """חיפוש SerpAPI אמין לתאריכים ספציפיים בדולרים"""
     params = {
@@ -82,48 +57,29 @@ def get_price_serpapi_specific(destination, outbound, ret, nights):
         return None
 
 def get_price_serpapi_explore(destination, month):
-    """שאילתת explore בדולרים"""
+    """שאילתת explore — מחזירה הכי זול לחודש שלם"""
     params = {
         "engine": "google_travel_explore",
         "departure_id": "TLV",
         "arrival_id": destination,
-        "travel_month": month,
-        "duration": 2,  # שבוע (6-7 לילות)
-        "currency": "USD",  # שינוי לדולר
+        "outbound_date": f"{month}-01",
+        "currency": "ILS",
         "hl": "en",
         "api_key": SERPAPI_KEY,
     }
     try:
         response = requests.get("https://serpapi.com/search", params=params)
         data = response.json()
-        results = data.get("results", [])
-        prices = [r["price"] for r in results if "price" in r]
+        destinations = data.get("destinations", [])
+        prices = [d["flight_price"] for d in destinations if d.get("flight_price")]
         return min(prices) if prices else None
     except Exception as e:
-        print(f"    שגיאה ב-SerpAPI: {e}")
+        print(f"    שגיאה ב-SerpAPI explore: {e}")
         return None
 
 def run():
     print("🔍 מתחיל סריקה מלאה בדולרים...")
     deals = []
-
-    # ── חלק 1: fast-flights — 5 ו-7 לילות ──
-    print("\n📡 fast-flights: סורק 5 ו-7 לילות...")
-    date_pairs = generate_date_pairs([5, 7])
-    for destination in DESTINATIONS:
-        for outbound, ret, nights in date_pairs:
-            outbound_fmt = date.fromisoformat(outbound).strftime("%d/%m/%Y")
-            ret_fmt = date.fromisoformat(ret).strftime("%d/%m/%Y")
-            print(f"  TLV→{destination} {outbound_fmt}→{ret_fmt} ({nights} לילות)")
-            price = get_price_fast_flights(outbound, ret, destination)
-            if price and price < PRICE_THRESHOLD_USD:
-                msg = (f"✈️ דיל נמצא!\n"
-                       f"TLV → {destination}\n"
-                       f"יציאה: {outbound_fmt} | חזרה: {ret_fmt}\n"
-                       f"{nights} לילות\n"
-                       f"מחיר: ${price} לשני נוסעים") # עדכון סימן המטבע
-                deals.append(msg)
-                print(f"  💰 DEAL: ${price}")
 
     # ── חלק 2: SerpAPI explore — 6 לילות ──
     print("\n📡 SerpAPI: סורק 6 לילות (explore)...")
