@@ -2,7 +2,6 @@ import os
 import requests
 from dotenv import load_dotenv
 from datetime import date, timedelta
-from fast_flights import FlightData, Passengers, get_flights
 
 load_dotenv()
 
