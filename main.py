@@ -10,7 +10,7 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 # ── הגדרות ──────────────────────────────────
-PRICE_THRESHOLD_ILS = 1190
+PRICE_THRESHOLD_USD = 400
 START_DATE = date(2026, 7, 12)
 END_DATE = date(2026, 8, 9)
 
@@ -61,7 +61,7 @@ def get_price_serpapi_explore_europe(month):
         "engine": "google_travel_explore",
         "departure_id": "TLV",
         "outbound_date": f"{month}-01",
-        "currency": "ILS",
+        "currency": "USD",
         "hl": "en",
         "api_key": SERPAPI_KEY,
     }
@@ -89,7 +89,7 @@ def get_price_serpapi_specific(destination, outbound, ret):
         "arrival_id": destination,
         "outbound_date": outbound,
         "return_date": ret,
-        "currency": "ILS",
+        "currency": "USD",
         "hl": "en",
         "api_key": SERPAPI_KEY,
         "adults": 2,
@@ -119,12 +119,12 @@ def run():
         for destination in ["SOF", "OTP"]:
             price = europe_prices.get(destination)
             if price:
-                print(f"  TLV→{destination} {month}: ₪{price}")
-                if price < PRICE_THRESHOLD_ILS:
+                print(f"  TLV→{destination} {month}: ${price}")
+                if price < PRICE_THRESHOLD_USD:
                     msg = (f"✈️ דיל נמצא! (explore)\n"
                            f"TLV → {destination}\n"
                            f"חודש: {month}\n"
-                           f"מחיר: ₪{price} לשני נוסעים\n"
+                           f"מחיר: ${price} לשני נוסעים\n"
                            f"בדוק ב-Skyscanner לפרטים!")
                     deals.append(msg)
                     print(f"  💰 DEAL!")
@@ -141,13 +141,13 @@ def run():
             print(f"  TLV→{destination} {outbound_fmt}→{ret_fmt} ({nights} לילות)")
             price = get_price_serpapi_specific(destination, outbound, ret)
             if price:
-                print(f"  מחיר: ₪{price}")
-                if price < PRICE_THRESHOLD_ILS:
+                print(f"  מחיר: ${price}")
+                if price < PRICE_THRESHOLD_USD:
                     msg = (f"✈️ דיל נמצא!\n"
                            f"TLV → {destination}\n"
                            f"יציאה: {outbound_fmt} | חזרה: {ret_fmt}\n"
                            f"{nights} לילות\n"
-                           f"מחיר: ₪{price} לשני נוסעים")
+                           f"מחיר: ${price} לשני נוסעים")
                     deals.append(msg)
                     print(f"  💰 DEAL!")
             else:
@@ -158,7 +158,7 @@ def run():
         for deal in deals:
             send_telegram(deal)
     else:
-        send_telegram(f"🔍 סריקה הושלמה — לא נמצאו טיסות מתחת ל-₪{PRICE_THRESHOLD_ILS}")
+        send_telegram(f"🔍 סריקה הושלמה — לא נמצאו טיסות מתחת ל-${PRICE_THRESHOLD_USD}")
         print("\nלא נמצאו דילים.")
 
 run()
